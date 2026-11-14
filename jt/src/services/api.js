@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+// Ensure API_BASE always points to /api prefix
+const rawApiUrl = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/+$/, '')}/api`;
 
 function getHeaders(extraHeaders = {}) {
   const headers = {
