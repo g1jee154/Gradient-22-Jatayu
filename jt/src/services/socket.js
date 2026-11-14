@@ -14,8 +14,14 @@ class WebSocketService {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // In dev Vite proxy forwards /ws to backend port 5050
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    let wsUrl = `${protocol}//${window.location.host}/ws`;
+
+    if (import.meta.env.VITE_WS_URL) {
+      wsUrl = import.meta.env.VITE_WS_URL;
+    } else if (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.startsWith('http')) {
+      const apiHost = new URL(import.meta.env.VITE_API_URL).host;
+      wsUrl = `${protocol}//${apiHost}/ws`;
+    }
 
     try {
       this.ws = new WebSocket(wsUrl);
