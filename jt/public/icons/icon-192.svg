@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="34.56" fill="#080e1b"/>
+  <rect x="9.600000000000001" y="9.600000000000001" width="172.8" height="172.8" rx="26.880000000000003" fill="#101a2c"/>
+  <path d="M96 28.799999999999997 L149.76 53.760000000000005 L149.76 105.60000000000001 Q149.76 157.44 96 168.96 Q42.24 157.44 42.24 105.60000000000001 L42.24 53.760000000000005 Z" fill="#ef4444"/>
+  <text x="96" y="115.19999999999999" text-anchor="middle" dominant-baseline="middle" font-family="Arial,sans-serif" font-weight="900" font-size="34.56" fill="white">SOS</text>
+  <text x="96" y="140.16" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="13.440000000000001" fill="#38bdf8">JATAYU</text>
+</svg>

@@ -70,16 +70,12 @@ export const AuthProvider = ({ children }) => {
     return data.user;
   };
 
-  const demoLogin = async (role = 'user') => {
-    const data = await authApi.demoLogin(role);
-    localStorage.setItem('jatayu_token', data.token);
-    setCurrentUser(data.user);
-    setUserProfile(data.user);
-    socket.connect();
-    return data.user;
-  };
-
   const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch (e) {
+      // ignore
+    }
     localStorage.removeItem('jatayu_token');
     setCurrentUser(null);
     setUserProfile(null);
@@ -93,7 +89,6 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     googleLogin,
-    demoLogin,
     logout,
     refreshUser: initAuth,
   };

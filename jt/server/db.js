@@ -42,6 +42,9 @@ export function initDatabase() {
       account_status TEXT NOT NULL DEFAULT 'active',
       blood_group TEXT DEFAULT 'O+',
       google_id TEXT,
+      google_sub TEXT,
+      profile_picture TEXT,
+      auth_provider TEXT DEFAULT 'local',
       email_verified INTEGER DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -125,6 +128,9 @@ export function initDatabase() {
   `);
 
   try { db.exec("ALTER TABLE users ADD COLUMN google_id TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN google_sub TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN profile_picture TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'local';"); } catch (e) {}
   try { db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0;"); } catch (e) {}
 
   // Seed default data if empty

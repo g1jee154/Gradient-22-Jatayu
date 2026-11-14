@@ -37,7 +37,7 @@ export function requireAuth(req, res, next) {
   }
 
   // Fetch fresh user from DB
-  const user = db.prepare('SELECT id, email, name, phone, role, account_status, blood_group FROM users WHERE id = ?').get(decoded.id);
+  const user = db.prepare('SELECT id, email, name, phone, role, account_status, blood_group, google_id, google_sub, profile_picture, auth_provider, email_verified FROM users WHERE id = ?').get(decoded.id);
   if (!user) {
     return res.status(401).json({ error: 'User account not found.' });
   }

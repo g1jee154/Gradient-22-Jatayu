@@ -46,10 +46,9 @@ export const authApi = {
       body: JSON.stringify(googleData),
     }),
 
-  demoLogin: (role) =>
-    request('/auth/demo-login', {
+  logout: () =>
+    request('/auth/logout', {
       method: 'POST',
-      body: JSON.stringify({ role }),
     }),
 
   getMe: () => request('/auth/me'),
