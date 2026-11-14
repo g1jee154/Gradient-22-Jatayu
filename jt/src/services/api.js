@@ -34,10 +34,16 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: (name, email, password, role = 'user', responder_type = 'Police') =>
+  register: (name, email, password, phone, role = 'user', responder_type = 'Police') =>
     request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, role, responder_type }),
+      body: JSON.stringify({ name, email, password, phone, role, responder_type }),
+    }),
+
+  googleAuth: (googleData) =>
+    request('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(googleData),
     }),
 
   demoLogin: (role) =>
@@ -154,4 +160,19 @@ export const adminApi = {
     }),
 
   getAuditLogs: () => request('/admin/audit-logs'),
+
+  getDbTables: () => request('/admin/db/tables'),
+
+  getTableRows: (table) => request(`/admin/db/tables/${table}`),
+
+  updateTableCell: (table, id, column, value) =>
+    request(`/admin/db/tables/${table}/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ column, value }),
+    }),
+
+  deleteTableRow: (table, id) =>
+    request(`/admin/db/tables/${table}/${id}`, {
+      method: 'DELETE',
+    }),
 };

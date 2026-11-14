@@ -1,6 +1,7 @@
 import express from 'express';
 import { db, addAuditLog } from '../db.js';
 import { requireAuth } from '../auth.js';
+import { dispatchRealEmergencyAlert, sanitizePhone } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -28,15 +29,16 @@ router.post('/', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Contact name and phone number are required.' });
     }
 
+    const cleanPhone = sanitizePhone(phone);
     const id = 'cnt_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
     const now = new Date().toISOString();
 
     db.prepare(`
       INSERT INTO contacts (id, user_id, name, phone, relationship, status, created_at)
       VALUES (?, ?, ?, ?, ?, 'Verified', ?)
-    `).run(id, req.user.id, name.trim(), phone.trim(), relationship.trim(), now);
+    `).run(id, req.user.id, name.trim(), cleanPhone, relationship.trim(), now);
 
-    addAuditLog(req.user.email, `Added emergency contact: ${name}`, `Phone: ${phone}`);
+    addAuditLog(req.user.email, `Added emergency contact: ${name}`, `Phone: ${cleanPhone}`);
 
     const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(id);
     res.status(201).json({
@@ -67,8 +69,8 @@ router.delete('/:id', requireAuth, (req, res) => {
   }
 });
 
-// 4. SIMULATE EMERGENCY BROADCAST TO CONTACTS
-router.post('/alert', requireAuth, (req, res) => {
+// 4. DISPATCH REAL EMERGENCY BROADCAST TO CONTACTS
+router.post('/alert', requireAuth, async (req, res) => {
   try {
     const { incidentId, location } = req.body;
     const contacts = db.prepare('SELECT * FROM contacts WHERE user_id = ?').all(req.user.id);
@@ -76,23 +78,30 @@ router.post('/alert', requireAuth, (req, res) => {
     if (contacts.length === 0) {
       return res.json({
         dispatchedCount: 0,
-        message: 'No contacts configured to receive SMS.'
+        message: 'No contacts configured to receive notifications.'
       });
     }
 
-    const coordinatesStr = location ? `${location.latitude}, ${location.longitude}` : 'Indiranagar, Bengaluru';
-    const trackingUrl = `http://localhost:5173/incident/${incidentId || 'active'}`;
+    const incident = incidentId ? db.prepare('SELECT * FROM incidents WHERE id = ?').get(incidentId) : null;
+    const incidentData = incident || {
+      id: 'EMERGENCY-' + Date.now().toString().slice(-4),
+      emergency_type: 'Urgent Personal Safety',
+      address: location?.address || 'Indiranagar, Bengaluru',
+      latitude: location?.latitude || 12.9784,
+      longitude: location?.longitude || 77.6408
+    };
 
-    addAuditLog(req.user.email, `SMS dispatched to ${contacts.length} trusted contacts`, `Alert link: ${trackingUrl}`);
+    const report = await dispatchRealEmergencyAlert({
+      user: req.user,
+      incident: incidentData,
+      contacts,
+      baseUrl: 'http://localhost:5050'
+    });
 
     res.json({
       dispatchedCount: contacts.length,
-      contacts: contacts.map(c => ({
-        name: c.name,
-        phone: c.phone,
-        status: 'Sent via SMS Gateway',
-        messagePreview: `EMERGENCY ALERT from ${req.user.name}: I need urgent help at ${coordinatesStr}. Track my live situation here: ${trackingUrl}`
-      }))
+      message: `Emergency broadcast initiated for ${contacts.length} trusted contacts.`,
+      report
     });
   } catch (err) {
     console.error('[Broadcast Alert Error]:', err);

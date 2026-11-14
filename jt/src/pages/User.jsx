@@ -277,12 +277,12 @@ export default function User() {
           </div>
 
           <button
-            className="sos-button"
+            className={`sos-button ${activeInc ? 'active' : 'ready'}`}
             disabled={loading}
             onClick={triggerSOS}
             aria-label="Trigger SOS Emergency"
           >
-            <span>{loading ? 'SENDING...' : 'SOS'}</span>
+            <span>{loading ? 'SENDING...' : activeInc ? '● LIVE' : 'SOS'}</span>
           </button>
 
           <p style={{ marginTop: '14px', fontWeight: 600 }}>

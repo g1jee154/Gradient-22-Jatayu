@@ -41,6 +41,8 @@ export function initDatabase() {
       role TEXT NOT NULL DEFAULT 'user',
       account_status TEXT NOT NULL DEFAULT 'active',
       blood_group TEXT DEFAULT 'O+',
+      google_id TEXT,
+      email_verified INTEGER DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -121,6 +123,9 @@ export function initDatabase() {
       created_at TEXT NOT NULL
     );
   `);
+
+  try { db.exec("ALTER TABLE users ADD COLUMN google_id TEXT;"); } catch (e) {}
+  try { db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0;"); } catch (e) {}
 
   // Seed default data if empty
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;

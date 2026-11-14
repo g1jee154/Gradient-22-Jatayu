@@ -62,7 +62,7 @@ export function Stat({ label, value, type = 'blue' }) {
 }
 
 export function Shell({ title, children }) {
-  const { userProfile, logout, demoLogin } = useAuth();
+  const { userProfile, logout } = useAuth();
   const { notification, clearNotification } = useApp();
   const navigate = useNavigate();
 
@@ -75,15 +75,6 @@ export function Shell({ title, children }) {
       navigate('/login', { replace: true });
     } catch (error) {
       console.error('Logout failed:', error);
-    }
-  };
-
-  const handleQuickSwitch = async (targetRole) => {
-    try {
-      await demoLogin(targetRole);
-      navigate(`/${targetRole}`, { replace: true });
-    } catch (e) {
-      console.error('Quick switch failed:', e);
     }
   };
 
@@ -164,66 +155,16 @@ export function Shell({ title, children }) {
           </>
         )}
 
-        {/* Quick Demo Switcher in Sidebar for smooth judging & testing */}
-        <div style={{ marginTop: 'auto', padding: '12px 0', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-          <small style={{ color: 'var(--muted, #94a3b8)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
-            Fast Role Switcher
-          </small>
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => handleQuickSwitch('user')}
-              style={{
-                background: role === 'user' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(255,255,255,0.05)',
-                color: role === 'user' ? '#38bdf8' : '#cbd5e1',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '11px',
-                cursor: 'pointer'
-              }}
-            >
-              Citizen
-            </button>
-            <button
-              onClick={() => handleQuickSwitch('responder')}
-              style={{
-                background: role === 'responder' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255,255,255,0.05)',
-                color: role === 'responder' ? '#22c55e' : '#cbd5e1',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '11px',
-                cursor: 'pointer'
-              }}
-            >
-              Responder
-            </button>
-            <button
-              onClick={() => handleQuickSwitch('admin')}
-              style={{
-                background: role === 'admin' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.05)',
-                color: role === 'admin' ? '#ef4444' : '#cbd5e1',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '11px',
-                cursor: 'pointer'
-              }}
-            >
-              Admin
-            </button>
-          </div>
-        </div>
+        {/* Quick Demo Switcher removed — no demo logins */}
 
         <div className="side-bottom">
           <button
             type="button"
             className="logout-btn"
             onClick={handleLogout}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
           >
-            <LogOut size={18} />
-            Log out
+            <LogOut size={16} />
+            Sign Out
           </button>
         </div>
       </aside>

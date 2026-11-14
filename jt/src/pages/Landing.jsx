@@ -13,31 +13,17 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { Logo } from '../components/UI';
-import { useAuth } from '../context/AuthContext';
 
 const features = [
   [Radio, 'One-Tap Emergency SOS', 'Instantly broadcast distress telemetry with real-time GPS coordinates.'],
   [MapPin, 'Live GPS & Route Telemetry', 'Dynamic vector routing and ETA computation between victim and field units.'],
-  [Users, 'Automated Contact Escalation', 'Instant SMS gateway simulation notifying trusted contacts with tracking links.'],
+  [Users, 'Automated Contact Escalation', 'Real SMS dispatch to trusted contacts with live tracking links via Twilio / Fast2SMS.'],
   [Shield, 'Verified Responder Fleet', 'Dedicated command console for Police, Paramedics, and Fire & Rescue teams.'],
   [Clock, 'Live Incident Lifecycle', 'Trace every step from SOS trigger, responder acceptance, on scene to resolution.'],
   [Activity, 'Command Center Analytics', 'Tamper-evident cryptographically chained audit trails and dispatcher overrides.']
 ];
 
 export default function Landing() {
-  const { demoLogin } = useAuth();
-  const nav = useNavigate();
-
-  const handleDemo = async (role) => {
-    try {
-      await demoLogin(role);
-      nav(`/${role}`);
-    } catch (e) {
-      console.error('Demo login error:', e);
-      nav('/login');
-    }
-  };
-
   return (
     <div className="landing">
       {/* TOP NAVIGATION */}
@@ -47,7 +33,6 @@ export default function Landing() {
           <a href="#home">Home</a>
           <a href="#features">Features</a>
           <a href="#how">How it Works</a>
-          <a href="#demo">Live Demo</a>
         </div>
         <div className="nav-actions">
           <Link className="btn outline" to="/login">
@@ -74,62 +59,16 @@ export default function Landing() {
           <Link className="btn large" to="/register">
             Get Protected <ArrowRight size={19} />
           </Link>
-          <a className="btn large outline" href="#demo">
-            Explore Live Demos
-          </a>
+          <Link className="btn large outline" to="/login">
+            Sign In
+          </Link>
         </div>
 
         <div className="hero-orbit" style={{ marginTop: '40px' }}>
-          <div className="orbit-inner" onClick={() => handleDemo('user')} style={{ cursor: 'pointer' }} title="Click to test SOS demo">
+          <div className="orbit-inner" style={{ cursor: 'default' }}>
             <Shield size={66} color="var(--red, #ef4444)" />
             <strong>SOS</strong>
             <small>ONE TAP TO ACTIVATE</small>
-          </div>
-        </div>
-      </section>
-
-      {/* INSTANT 1-CLICK DEMO ACCOUNTS BAR */}
-      <section className="section" id="demo" style={{ background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.08)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ textAlign: 'center', maxWidth: '700px', margin: '0 auto 30px' }}>
-          <span className="eyebrow">READY TO EVALUATE</span>
-          <h2>Explore All 3 Roles in 1-Click</h2>
-          <p className="muted">
-            The backend is fully operational with persistent SQLite database, WebSockets, and real-time dispatch synchronization.
-          </p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', maxWidth: '1000px', margin: '0 auto' }}>
-          <div className="card feature" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onClick={() => handleDemo('user')}>
-            <User size={32} color="#38bdf8" />
-            <h3 style={{ margin: '12px 0 6px' }}>Citizen Dashboard</h3>
-            <p className="muted" style={{ fontSize: '13px', marginBottom: '14px' }}>
-              Logged in as Aarav Sharma. Trigger SOS beacons, configure trusted contacts, view nearby responders.
-            </p>
-            <button className="btn outline" style={{ width: '100%' }}>
-              Launch Citizen App →
-            </button>
-          </div>
-
-          <div className="card feature" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onClick={() => handleDemo('responder')}>
-            <Radio size={32} color="#22c55e" />
-            <h3 style={{ margin: '12px 0 6px' }}>Responder Console</h3>
-            <p className="muted" style={{ fontSize: '13px', marginBottom: '14px' }}>
-              Logged in as Officer Arjun (Police). Accept emergency calls, view live GPS routes, update status to on-scene and resolved.
-            </p>
-            <button className="btn outline" style={{ width: '100%' }}>
-              Launch Responder Console →
-            </button>
-          </div>
-
-          <div className="card feature" style={{ cursor: 'pointer', transition: 'transform 0.2s' }} onClick={() => handleDemo('admin')}>
-            <Shield size={32} color="#ef4444" />
-            <h3 style={{ margin: '12px 0 6px' }}>Command Center</h3>
-            <p className="muted" style={{ fontSize: '13px', marginBottom: '14px' }}>
-              Logged in as Dispatch Chief Priya. Global incident map, manual dispatch overrides, responder verification, and tamper-evident audit ledger.
-            </p>
-            <button className="btn outline" style={{ width: '100%' }}>
-              Launch Command Center →
-            </button>
           </div>
         </div>
       </section>

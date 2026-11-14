@@ -10,7 +10,7 @@ import {
 import MapPanel from '../components/MapPanel';
 import { adminApi, incidentsApi, respondersApi } from '../services/api';
 import { socket } from '../services/socket';
-import { Shield, Users, Radio, CheckCircle, AlertTriangle, FileText, Lock } from 'lucide-react';
+import { Shield, Users, Radio, CheckCircle, AlertTriangle, FileText, Lock, Database, Edit, Trash2, RefreshCw } from 'lucide-react';
 
 export default function Admin() {
   const [tab, setTab] = useState('Overview');
@@ -32,6 +32,14 @@ export default function Admin() {
   const [dispatchModal, setDispatchModal] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [selectedResponderId, setSelectedResponderId] = useState('');
+
+  // Database Explorer state
+  const [dbTables, setDbTables] = useState([]);
+  const [currentDbTable, setCurrentDbTable] = useState('users');
+  const [tableRows, setTableRows] = useState([]);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [editRowData, setEditRowData] = useState(null);
+  const [editModal, setEditModal] = useState(false);
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -56,8 +64,30 @@ export default function Admin() {
     }
   }, []);
 
+  const loadDbTable = useCallback(async (tableName) => {
+    try {
+      setTableLoading(true);
+      setCurrentDbTable(tableName);
+      const res = await adminApi.getTableRows(tableName);
+      setTableRows(res.rows || []);
+    } catch (err) {
+      console.error('Error querying table:', err);
+      setError('Failed to load table ' + tableName);
+    } finally {
+      setTableLoading(false);
+    }
+  }, []);
+
+  const loadDbTablesList = useCallback(async () => {
+    try {
+      const res = await adminApi.getDbTables();
+      setDbTables(res.tables || []);
+    } catch (e) {}
+  }, []);
+
   useEffect(() => {
     loadAllData();
+    loadDbTablesList();
 
     // Listen to real-time events
     const unsubNew = socket.on('new_emergency', (data) => {
@@ -84,7 +114,15 @@ export default function Admin() {
       unsubUpdate();
       unsubResp();
     };
-  }, [loadAllData]);
+  }, [loadAllData, loadDbTablesList]);
+
+  // When switching to Database Explorer tab, load tables
+  useEffect(() => {
+    if (tab === 'Database Explorer') {
+      loadDbTablesList();
+      loadDbTable(currentDbTable);
+    }
+  }, [tab, currentDbTable, loadDbTable, loadDbTablesList]);
 
   // Handle Verify / Reject Responder
   async function handleVerifyResponder(id, verifyStatus) {
@@ -138,6 +176,41 @@ export default function Admin() {
     }
   }
 
+  // Handle Save Row in Database Explorer
+  async function handleSaveRowEdit(e) {
+    e.preventDefault();
+    if (!editRowData) return;
+    try {
+      for (const [col, val] of Object.entries(editRowData)) {
+        if (col !== 'id') {
+          await adminApi.updateTableCell(currentDbTable, editRowData.id, col, val);
+        }
+      }
+      setMessage(`Record in '${currentDbTable}' updated successfully.`);
+      setTimeout(() => setMessage(''), 3000);
+      setEditModal(false);
+      loadDbTable(currentDbTable);
+      loadAllData();
+    } catch (err) {
+      setError(err.message || 'Failed to update record.');
+    }
+  }
+
+  // Handle Delete Row in Database Explorer
+  async function handleDeleteDbRow(id) {
+    if (!window.confirm(`Are you sure you want to delete row ${id} from table ${currentDbTable}?`)) return;
+    try {
+      await adminApi.deleteTableRow(currentDbTable, id);
+      setTableRows((prev) => prev.filter((r) => r.id !== id));
+      setMessage(`Row ${id} deleted from ${currentDbTable}.`);
+      setTimeout(() => setMessage(''), 3000);
+      loadDbTablesList();
+      loadAllData();
+    } catch (err) {
+      setError(err.message || 'Failed to delete row.');
+    }
+  }
+
   const activeIncidents = incidents.filter((i) =>
     ['Pending', 'Accepted', 'En route', 'On scene'].includes(i.status)
   );
@@ -152,7 +225,7 @@ export default function Admin() {
     <Shell title="Command Center Administration">
       <div className="top-line">
         <p className="muted">
-          Unified City-Wide Emergency Telemetry, Dispatch & Responder Fleet Operations
+          Unified City-Wide Emergency Telemetry, Dispatch & Database Management
         </p>
         <Connectivity />
       </div>
@@ -179,8 +252,8 @@ export default function Admin() {
       </div>
 
       {/* ADMIN NAVIGATION TABS */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
-        {['Overview', 'Incident Dispatch Feed', 'Responder Fleet', 'User Directory', 'Tamper-Evident Audit Ledger'].map((t) => (
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px', flexWrap: 'wrap' }}>
+        {['Overview', 'Incident Dispatch Feed', 'Responder Fleet', 'User Directory', 'Database Explorer', 'Tamper-Evident Audit Ledger'].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -192,9 +265,13 @@ export default function Admin() {
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: 600,
-              fontSize: '13px'
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
+            {t === 'Database Explorer' && <Database size={14} />}
             {t}
           </button>
         ))}
@@ -423,7 +500,122 @@ export default function Admin() {
         </Card>
       )}
 
-      {/* TAB 5: AUDIT LOGS */}
+      {/* TAB 5: DATABASE EXPLORER (FIREBASE-LIKE GUI VIEWER & EDITOR) */}
+      {tab === 'Database Explorer' && (
+        <Card
+          title={`Database Explorer · Table: ${currentDbTable} (${tableRows.length} rows)`}
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => loadDbTable(currentDbTable)}
+              style={{ fontSize: '12px', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <RefreshCw size={13} /> Refresh
+            </Button>
+          }
+        >
+          <p className="muted" style={{ fontSize: '13px', margin: '-4px 0 16px' }}>
+            Interactive Firebase-like database console. Click on any table to view rows, edit records, or delete test entries in real time.
+          </p>
+
+          {/* Table Selector Pills */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            {dbTables.map((t) => (
+              <button
+                key={t.table}
+                onClick={() => loadDbTable(t.table)}
+                style={{
+                  background: currentDbTable === t.table ? 'var(--blue, #38bdf8)' : 'rgba(255,255,255,0.06)',
+                  color: currentDbTable === t.table ? '#080e1b' : '#cbd5e1',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>{t.table}</span>
+                <span style={{ fontSize: '10px', opacity: 0.8, background: 'rgba(0,0,0,0.2)', padding: '1px 6px', borderRadius: '10px' }}>
+                  {t.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Table Data Grid */}
+          {tableLoading ? (
+            <p className="muted" style={{ padding: '20px 0', textAlign: 'center' }}>Querying database...</p>
+          ) : tableRows.length === 0 ? (
+            <p className="muted" style={{ padding: '20px 0', textAlign: 'center' }}>Table is empty.</p>
+          ) : (
+            <div style={{ overflowX: 'auto', maxHeight: '450px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(15, 23, 42, 0.9)', borderBottom: '1px solid rgba(255,255,255,0.15)', position: 'sticky', top: 0, zIndex: 10 }}>
+                    <th style={{ padding: '10px 12px', color: '#94a3b8' }}>Actions</th>
+                    {Object.keys(tableRows[0] || {}).map((col) => (
+                      <th key={col} style={{ padding: '10px 12px', color: '#38bdf8', whiteSpace: 'nowrap' }}>
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((row, idx) => (
+                    <tr
+                      key={row.id || idx}
+                      style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                        background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)'
+                      }}
+                    >
+                      <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            title="Edit row"
+                            onClick={() => { setEditRowData({ ...row }); setEditModal(true); }}
+                            style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '2px' }}
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            title="Delete row"
+                            onClick={() => handleDeleteDbRow(row.id)}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                      {Object.entries(row).map(([k, v]) => (
+                        <td
+                          key={k}
+                          style={{
+                            padding: '8px 12px',
+                            maxWidth: '250px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={String(v ?? '')}
+                        >
+                          {k.includes('password') ? '••••••••' : String(v ?? '')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* TAB 6: AUDIT LOGS */}
       {tab === 'Tamper-Evident Audit Ledger' && (
         <Card title="Tamper-Evident Cryptographic Audit Trail">
           <p className="muted" style={{ fontSize: '13px', margin: '-4px 0 14px' }}>
@@ -453,6 +645,43 @@ export default function Admin() {
             ))}
           </div>
         </Card>
+      )}
+
+      {/* EDIT ROW MODAL IN DATABASE EXPLORER */}
+      {editModal && editRowData && (
+        <div className="modal-backdrop">
+          <div className="card modal" style={{ maxWidth: '550px', maxHeight: '85vh', overflowY: 'auto' }}>
+            <h2>Edit Record in '{currentDbTable}'</h2>
+            <p className="muted">Primary ID: <b>{editRowData.id}</b></p>
+
+            <form onSubmit={handleSaveRowEdit}>
+              {Object.keys(editRowData).map((col) => {
+                if (col === 'id') return null;
+                const isPassword = col.includes('password');
+                return (
+                  <label key={col} style={{ display: 'block', margin: '10px 0', fontSize: '12px' }}>
+                    <span style={{ color: '#38bdf8', fontWeight: 600 }}>{col}</span>:
+                    <input
+                      type={isPassword ? 'password' : 'text'}
+                      value={editRowData[col] ?? ''}
+                      onChange={(e) => setEditRowData({ ...editRowData, [col]: e.target.value })}
+                      style={{ marginTop: '4px', padding: '8px', fontSize: '13px' }}
+                    />
+                  </label>
+                );
+              })}
+
+              <div className="button-row" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+                <Button type="button" variant="outline" onClick={() => setEditModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* MANUAL DISPATCH MODAL */}

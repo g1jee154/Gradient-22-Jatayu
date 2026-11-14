@@ -6,6 +6,7 @@ import {
   notifyIncidentUpdate,
   notifyChatMessage
 } from '../websocket.js';
+import { dispatchRealEmergencyAlert } from '../services/notificationService.js';
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 // 1. TRIGGER SOS (CREATE INCIDENT)
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const {
       latitude = 12.9784,
@@ -64,10 +65,22 @@ router.post('/', requireAuth, (req, res) => {
 
     insertTimeline.run(id, `SOS triggered by ${req.user.name}`, `Emergency alert: ${emergency_type} with GPS beacon`, req.user.name, now);
 
-    // Notify contacts simulation
-    const contacts = db.prepare('SELECT name, phone FROM contacts WHERE user_id = ?').all(req.user.id);
+    // Notify contacts via Real Carrier / Gateway Dispatch
+    const contacts = db.prepare('SELECT id, name, phone, relationship FROM contacts WHERE user_id = ?').all(req.user.id);
+    let dispatchReport = null;
     if (contacts.length > 0) {
-      insertTimeline.run(id, `Trusted contacts notified (${contacts.length})`, `SMS & emergency link dispatched to ${contacts.map(c => c.name).join(', ')}`, 'JATAYU Gateway', new Date(Date.now() + 500).toISOString());
+      dispatchReport = await dispatchRealEmergencyAlert({
+        user: req.user,
+        incident: { id, emergency_type, address, latitude, longitude },
+        contacts
+      });
+      insertTimeline.run(
+        id,
+        `Trusted contacts alerted (${contacts.length})`,
+        `Real notification dispatched to: ${contacts.map(c => `${c.name} (${c.phone})`).join(', ')}`,
+        'Carrier Gateway',
+        new Date(Date.now() + 500).toISOString()
+      );
     }
 
     insertTimeline.run(id, 'Broadcasted to nearby responders', 'Emergency telemetry beamed to available response units', 'Dispatch Engine', new Date(Date.now() + 1000).toISOString());
@@ -81,7 +94,8 @@ router.post('/', requireAuth, (req, res) => {
 
     res.status(201).json({
       message: 'SOS incident created successfully',
-      incident
+      incident,
+      dispatchReport
     });
   } catch (err) {
     console.error('[Create Incident Error]:', err);

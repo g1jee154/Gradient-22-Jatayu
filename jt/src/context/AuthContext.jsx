@@ -52,8 +52,17 @@ export const AuthProvider = ({ children }) => {
     return data.user;
   };
 
-  const register = async (name, email, password, role = 'user', responder_type = 'Police') => {
-    const data = await authApi.register(name, email, password, role, responder_type);
+  const register = async (name, email, password, phone, role = 'user', responder_type = 'Police') => {
+    const data = await authApi.register(name, email, password, phone, role, responder_type);
+    localStorage.setItem('jatayu_token', data.token);
+    setCurrentUser(data.user);
+    setUserProfile(data.user);
+    socket.connect();
+    return data.user;
+  };
+
+  const googleLogin = async (googleData) => {
+    const data = await authApi.googleAuth(googleData);
     localStorage.setItem('jatayu_token', data.token);
     setCurrentUser(data.user);
     setUserProfile(data.user);
@@ -83,6 +92,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
+    googleLogin,
     demoLogin,
     logout,
     refreshUser: initAuth,
