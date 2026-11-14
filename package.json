@@ -1,0 +1,11 @@
+{
+  "name": "gradient-22-jatayu",
+  "version": "1.0.0",
+  "description": "JATAYU — Unified Personal Safety and Rapid Emergency Response Platform",
+  "scripts": {
+    "dev": "npm run dev --prefix jt",
+    "build": "npm run build --prefix jt",
+    "start": "npm start --prefix jt",
+    "server": "npm run server --prefix jt"
+  }
+}
